@@ -1,7 +1,8 @@
 // ===== AI转Word助手 - 主应用逻辑 =====
 
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-    BorderStyle, WidthType, Table, TableRow, TableCell } = docx;
+    BorderStyle, WidthType, Table, TableRow, TableCell, TableLayoutType,
+    UnderlineType, TabStopType, TabStopPosition, SectionType, PageNumber } = docx;
 
 // ===== 模板配置 =====
 const TEMPLATES = {
@@ -11,9 +12,9 @@ const TEMPLATES = {
         headingSize: 22,
         bodyFont: 'FangSong',
         bodySize: 16,
-        lineHeight: 560,  // 280 * 2 (half-points)
+        lineHeight: 560,
         alignment: AlignmentType.JUSTIFIED,
-        firstLineIndent: 432, // 2字符缩进 (Emu)
+        firstLineIndent: 432,
         margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
     },
     workplace: {
@@ -39,6 +40,12 @@ const TEMPLATES = {
         margins: { top: 1270, right: 1270, bottom: 1270, left: 1270 }
     },
     custom: null
+};
+
+const MODE_NAMES = {
+    purify: '净化',
+    rearrange: '重排',
+    general: '通用'
 };
 
 let currentTemplate = 'official';
@@ -80,6 +87,7 @@ function init() {
     updateTheme();
     updateTemplateSelection();
     updateModeSelection();
+    updatePreview();
 }
 
 function loadFromLocalStorage() {
@@ -123,6 +131,7 @@ function setupEventListeners() {
             currentTemplate = card.dataset.template;
             if (currentTemplate !== 'custom') customSettings = null;
             saveToLocalStorage();
+            updatePreview();
         });
     });
 
@@ -130,6 +139,7 @@ function setupEventListeners() {
         radio.addEventListener('change', (e) => {
             currentMode = e.target.value;
             saveToLocalStorage();
+            updatePreview();
         });
     });
 
@@ -179,7 +189,7 @@ function updateTheme() { applyTheme(); }
 // ===== 弹窗控制 =====
 function showModal() {
     elements.templateModal.classList.add('show');
-    const tpl = currentTemplate === 'custom' && customSettings 
+    const tpl = currentTemplate === 'custom' && customSettings
         ? customSettings : TEMPLATES[currentTemplate];
     if (tpl) {
         elements.headingFont.value = tpl.headingFont || 'SimSun';
@@ -205,6 +215,7 @@ function saveTemplateSettings() {
     $('[data-template="custom"]').classList.add('active');
     hideModal();
     saveToLocalStorage();
+    updatePreview();
 }
 
 function resetTemplateSettings() {
@@ -432,6 +443,10 @@ async function exportToWord() {
         const template = getTemplateSettings();
         const children = parseMarkdownToParagraphs(processed, template);
 
+        const modeLabel = MODE_NAMES[currentMode] || currentMode;
+        const templateName = template.name || '自定义';
+        const fileName = `AI转Word_${modeLabel}模式_${templateName}_${new Date().toLocaleDateString('zh-CN')}.docx`;
+
         const doc = new Document({
             sections: [{
                 properties: {
@@ -449,12 +464,12 @@ async function exportToWord() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'AI转换文档_' + new Date().toLocaleDateString('zh-CN') + '.docx';
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        alert('✅ Word文档导出成功！');
+        alert('✅ Word文档导出成功！\n文件名：' + fileName);
     } catch (error) {
         console.error('导出失败:', error);
         alert('❌ 导出失败: ' + error.message);
