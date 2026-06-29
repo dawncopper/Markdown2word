@@ -255,12 +255,16 @@ function setupEventListeners() {
     el.addCustomTemplateBtn.addEventListener('click', saveAsCustomTemplate);
 
     // Paste button — 移动端兼容：优先 navigator.clipboard，降级为 prompt
-    el.clearBtn?.addEventListener('click', () => {
-        el.markdownInput.value = '';
-        updatePreview();
-        updateStats();
-        showToast('已清除内容', 'info');
-    });
+    // Clear button
+    const clearBtn = document.querySelector('#clear-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            el.markdownInput.value = '';
+            updatePreview();
+            updateStats();
+            showToast('已清除内容', 'info');
+        });
+    }
 
     el.pasteBtn?.addEventListener('click', async () => {
         const ta = el.markdownInput;
@@ -278,8 +282,8 @@ function setupEventListeners() {
         }
     });
 
-    // File input — 移动端放宽 accept，允许所有文件类型
-    el.fileInput.removeAttribute('accept');
+    // File input — 限制文件类型
+    el.fileInput.setAttribute('accept', '.txt,.md,.docx,.html');
 
     // Divider drag
     setupDividerDrag();
