@@ -114,6 +114,7 @@ const el = {
     settingsBtn: $('#template-settings'),
     templateModal: $('#template-modal'),
     markdownInput: $('#markdown-input'),
+    clearBtn: $('#clear-btn'),
     pasteBtn: $('#paste-btn'),
     uploadBtn: $('#upload-btn'),
     fileInput: $('#file-input'),
@@ -254,6 +255,13 @@ function setupEventListeners() {
     el.addCustomTemplateBtn.addEventListener('click', saveAsCustomTemplate);
 
     // Paste button — 移动端兼容：优先 navigator.clipboard，降级为 prompt
+    el.clearBtn?.addEventListener('click', () => {
+        el.markdownInput.value = '';
+        updatePreview();
+        updateStats();
+        showToast('已清除内容', 'info');
+    });
+
     el.pasteBtn?.addEventListener('click', async () => {
         const ta = el.markdownInput;
         ta.focus();
