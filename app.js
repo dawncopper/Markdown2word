@@ -453,6 +453,7 @@ function selectTemplate(name) {
     updateTemplateSelection();
     updatePreview();
     updateStats();
+    updateTemplatePreview();
 }
 
 function updateTemplateSelection() {
@@ -467,17 +468,20 @@ function renderTemplateGrid() {
 
     let html = '';
 
-    // Built-in templates
+    // Built-in templates (view-only, click to see detail)
     Object.entries(DEFAULT_TEMPLATES).forEach(([key, tpl]) => {
         html += `
             <div class="template-card ${currentTemplate === key ? 'active' : ''}" data-template="${key}">
                 <div class="template-icon">${tpl.icon}</div>
                 <div class="template-name">${tpl.name}</div>
                 <div class="template-desc">${tpl.desc}</div>
+                <div class="template-card-actions">
+                    <button class="card-action-btn detail-btn" onclick="event.stopPropagation(); showTemplateDetail('${key}')" title="查看详情">🔍</button>
+                </div>
             </div>`;
     });
 
-    // Custom templates
+    // Custom templates (with edit/delete)
     customTemplates.forEach((tpl, idx) => {
         html += `
             <div class="template-card ${currentTemplate === 'custom_' + idx ? 'active' : ''}" data-template="custom_${idx}">
@@ -485,6 +489,10 @@ function renderTemplateGrid() {
                 <div class="template-name">${tpl.name}</div>
                 <div class="template-desc">自定义模板</div>
                 <div class="template-custom-badge">已保存</div>
+                <div class="template-card-actions">
+                    <button class="card-action-btn edit-btn" onclick="event.stopPropagation(); editCustomTemplate(${idx})" title="编辑">✏️</button>
+                    <button class="card-action-btn delete-btn" onclick="event.stopPropagation(); deleteCustomTemplate(${idx})" title="删除">🗑️</button>
+                </div>
             </div>`;
     });
 
@@ -667,6 +675,7 @@ function loadCustomTemplate(idx) {
 
 function deleteCustomTemplate(idx) {
     const name = customTemplates[idx].name;
+    if (!confirm(`确定要删除模板 "${name}" 吗？`)) return;
     customTemplates.splice(idx, 1);
     saveState();
     renderTemplateGrid();
@@ -685,10 +694,150 @@ function deleteCustomTemplate(idx) {
         }
     }
     saveState();
+    updateTemplateSelection();
+    updatePreview();
+    updateTemplatePreview();
     showToast(`模板 "${name}" 已删除`, 'info');
 }
 
-// ===== 文件上传 =====
+// ===== 模板详情弹窗 =====
+function showTemplateDetail(key) {
+    const tpl = DEFAULT_TEMPLATES[key];
+    if (!tpl) return;
+    const cfg = tpl.config || {};
+    const info = `
+📄 模板：${tpl.name}<br>
+━━━━━━━━━━━━━━━<br>
+<b>一级标题：</b>${cfg.headingFont || tpl.bodyFont} · ${cfg.headingSize || 16}pt<br>
+<b>二级标题：</b>${cfg.heading2Font || cfg.headingFont || tpl.bodyFont} · ${cfg.heading2Size || 14}pt<br>
+<b>正文：</b>${cfg.bodyFont || tpl.bodyFont} · ${cfg.bodySize || 12}pt<br>
+<b>行距：</b>${cfg.lineHeight || 1.5}${cfg.lineRule === 'exact' ? ' (固定磅值)' : ' (倍数)'}<br>
+<b>对齐：</b>${cfg.alignment || 'left'}<br>
+<b>首行缩进：</b>${(cfg.firstLineIndent || 0)} 字符<br>
+<b>间距：</b>段前${cfg.spacingBefore || 0}pt / 段后${cfg.spacingAfter || 0}pt
+    `;
+    // Use a simple alert-like modal
+    const modal = document.getElementById('template-modal');
+    if (modal) {
+        // Temporarily repurpose the modal content
+        const header = modal.querySelector('.modal-header h3');
+        if (header) header.textContent = `🔍 ${tpl.name} — 模板详情`;
+        
+        // Replace form content with detail info
+        const body = modal.querySelector('.modal-body-temp') || document.createElement('div');
+        body.className = 'modal-body-temp';
+        body.innerHTML = `<div style="padding: 1rem; white-space: pre-wrap; line-height: 1.8; font-size: 0.9rem; color: var(--text-primary);">${info}</div>`;
+        
+        // Hide all setting groups
+        modal.querySelectorAll('.setting-group, .setting-row, .checkbox-group, .modal-footer, [style*="border-top"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // Show detail body
+        if (!modal.querySelector('.modal-body-temp')) {
+            modal.querySelector('.modal-content').appendChild(body);
+        }
+        
+        // Show save button as "close"
+        const footer = modal.querySelector('[style*="border-top"]');
+        if (footer) footer.style.display = 'block';
+        
+        const saveBtn = document.getElementById('save-template-modal');
+        if (saveBtn) {
+            saveBtn.textContent = '✓ 关闭';
+            saveBtn.onclick = () => {
+                closeSettingsModal();
+                restoreModalFromDetail();
+            };
+        }
+        
+        modal.classList.add('show');
+    }
+}
+
+function restoreModalFromDetail() {
+    const modal = document.getElementById('template-modal');
+    if (!modal) return;
+    
+    // Restore hidden elements
+    modal.querySelectorAll('.setting-group, .setting-row, .checkbox-group').forEach(el => {
+        el.style.display = '';
+    });
+    const footer = modal.querySelector('[style*="border-top"]');
+    if (footer) footer.style.display = '';
+    
+    // Remove temp detail body
+    const tempBody = modal.querySelector('.modal-body-temp');
+    if (tempBody) tempBody.remove();
+    
+    // Restore header and button
+    const header = modal.querySelector('.modal-header h3');
+    if (header) header.textContent = '⚙️ 模板设置';
+    const saveBtn = document.getElementById('save-template-modal');
+    if (saveBtn) {
+        saveBtn.textContent = '✅ 应用设置';
+        saveBtn.onclick = () => saveCurrentSettings();
+    }
+}
+
+// ===== 编辑自定义模板 =====
+function editCustomTemplate(idx) {
+    currentTemplate = 'custom_' + idx;
+    openSettingsModal();
+    // Populate from custom template
+    const tpl = customTemplates[idx];
+    if (tpl) {
+        el.headingFont.value = tpl.headingFont || 'SimSun';
+        el.bodyFont.value = tpl.bodyFont || 'SimSun';
+        el.headingSize.value = tpl.headingSize || 12;
+        el.bodySize.value = tpl.bodySize || 12;
+        el.heading2Font.value = tpl.heading2Font || tpl.headingFont || 'SimSun';
+        el.heading2Size.value = tpl.heading2Size || tpl.headingSize || 14;
+        el.lineSpacing.value = String(tpl.lineHeight || 1.5);
+        el.lineRule.value = tpl.lineRule || 'auto';
+        el.alignment.value = tpl.alignment || 'left';
+        el.useIndent.checked = (tpl.firstLineIndent > 0);
+        el.firstLineIndent.value = String(tpl.firstLineIndent || 0);
+    }
+}
+
+// ===== 模板预览效果 =====
+function updateTemplatePreview() {
+    const previewEl = document.getElementById('template-preview-content');
+    if (!previewEl) return;
+    
+    const tpl = getEffectiveTemplate();
+    const cfg = tpl.config || tpl;
+    
+    // Generate a sample preview based on template settings
+    const sampleText = `# 文档标题\n\n这是正文第一段，展示模板的实际效果。正文使用${cfg.bodyFont || '宋体'}字体，字号${cfg.bodySize || 12}pt。\n\n## 二级标题\n\n这是二级标题下的正文内容，行距为${cfg.lineHeight || 1.5}${cfg.lineRule === 'exact' ? '磅值' : '倍'}。\n\n- 列表项一\n- 列表项二\n- 列表项三`;
+    
+    try {
+        previewEl.innerHTML = marked.parse(sampleText);
+    } catch(e) {
+        previewEl.textContent = sampleText;
+    }
+    
+    // Apply template font styles to preview
+    const headingFont = cfg.headingFont || 'SimSun';
+    const bodyFont = cfg.bodyFont || 'SimSun';
+    const headingSize = (cfg.headingSize || 16) + 'pt';
+    const bodySize = (cfg.bodySize || 12) + 'pt';
+    
+    previewEl.style.fontFamily = `var(--font-serif), ${bodyFont}`;
+    previewEl.querySelectorAll('h1, h2, h3').forEach(h => {
+        h.style.fontFamily = `var(--font-sans), ${headingFont}`;
+        h.style.fontSize = h.tagName === 'H1' ? headingSize : 
+                           h.tagName === 'H2' ? (cfg.heading2Size || 14) + 'pt' : headingSize;
+    });
+    previewEl.querySelectorAll('p').forEach(p => {
+        p.style.fontSize = bodySize;
+        p.style.lineHeight = cfg.lineHeight || 1.5;
+        if (cfg.firstLineIndent > 0) {
+            p.style.textIndent = `${cfg.firstLineIndent}em`;
+        }
+    });
+}
 function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
