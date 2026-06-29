@@ -452,8 +452,8 @@ function selectTemplate(name) {
     saveState();
     updateTemplateSelection();
     updatePreview();
-    updateStats();
     updateTemplatePreview();
+    updateStats();
 }
 
 function updateTemplateSelection() {
