@@ -678,8 +678,15 @@ function deleteCustomTemplate(idx) {
 
 // ===== 文件上传 =====
 function handleFileUpload(e) {
+    console.log('[DEBUG] handleFileUpload triggered');
+    console.log('[DEBUG] files:', e.target.files, 'length:', e.target.files.length);
+    console.log('[DEBUG] value:', e.target.value);
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('[DEBUG] No file found, returning');
+        return;
+    }
+    console.log('[DEBUG] Processing file:', file.name, file.size);
     processFile(file);
     e.target.value = '';
 }
