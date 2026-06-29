@@ -128,10 +128,11 @@ const el = {
     statsTables: $('#stat-tables'),
     templateGrid: $('#template-grid'),
     saveTemplateBtn: $('#save-template'),
+    saveTemplateModal: $('#save-template-modal'),
     resetTemplateBtn: $('#reset-template'),
+    customTemplateName: $('#custom-template-name'),
     closeSettingsBtn: $('#close-settings'),
     closeTemplatesBtn: $('#close-templates'),
-    customTemplateName: $('#custom-template-name'),
     templateList: $('#template-list'),
     addCustomTemplateBtn: $('#add-custom-template-btn'),
     headingFont: $('#heading-font'),
@@ -205,7 +206,8 @@ function setupEventListeners() {
     });
 
     // Save/Reset settings
-    el.saveTemplateBtn.addEventListener('click', saveCurrentSettings);
+    el.saveTemplateBtn?.addEventListener('click', saveCurrentSettings);
+    el.saveTemplateModal?.addEventListener('click', saveCurrentSettings);
     el.resetTemplateBtn.addEventListener('click', resetSettingsForm);
 
     // Template cards
@@ -521,7 +523,7 @@ function resetSettingsForm() {
 }
 
 function saveCurrentSettings() {
-    customSettings = {
+    const settings = {
         headingFont: el.headingFont.value,
         headingSize: parseInt(el.headingSize.value) || 12,
         heading2Font: el.heading2Font.value,
@@ -537,11 +539,37 @@ function saveCurrentSettings() {
     };
 
     // Calculate indent twips
-    if (customSettings.firstLineIndent > 0) {
-        customSettings.indentTwips = customSettings.firstLineIndent * 160;
+    if (settings.firstLineIndent > 0) {
+        settings.indentTwips = settings.firstLineIndent * 160;
     }
 
-    currentTemplate = 'custom';
+    // Determine where to save
+    if (currentTemplate.startsWith('custom_')) {
+        const idx = parseInt(currentTemplate.split('_')[1]);
+        if (!isNaN(idx) && customTemplates[idx]) {
+            Object.assign(customTemplates[idx], settings);
+        }
+    } else if (currentTemplate === 'custom') {
+        customSettings = settings;
+    } else if (DEFAULT_TEMPLATES[currentTemplate]) {
+        // Override built-in template
+        DEFAULT_TEMPLATES[currentTemplate] = {
+            ...DEFAULT_TEMPLATES[currentTemplate],
+            headingFont: settings.headingFont,
+            headingSize: settings.headingSize,
+            heading2Font: settings.heading2Font,
+            heading2Size: settings.heading2Size,
+            bodyFont: settings.bodyFont,
+            bodySize: settings.bodySize,
+            lineHeight: settings.lineHeight,
+            lineRule: settings.lineRule,
+            alignment: settings.alignment,
+            firstLineIndent: settings.firstLineIndent,
+            indentTwips: settings.indentTwips
+        };
+    }
+
+    customSettings = settings;
     closeSettingsModal();
     saveState();
     renderTemplateGrid();
