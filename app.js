@@ -253,6 +253,26 @@ function setupEventListeners() {
     });
     el.addCustomTemplateBtn.addEventListener('click', saveAsCustomTemplate);
 
+    // Paste button — 移动端兼容：优先 navigator.clipboard，降级为 prompt
+    el.pasteBtn?.addEventListener('click', async () => {
+        const ta = el.markdownInput;
+        ta.focus();
+        try {
+            const text = await navigator.clipboard.readText();
+            document.execCommand('insertText', false, text);
+        } catch {
+            // 降级：弹出输入框让用户粘贴
+            const text = prompt('从剪贴板粘贴，请粘贴你的文案：');
+            if (text) {
+                ta.value = text;
+                ta.dispatchEvent(new Event('input'));
+            }
+        }
+    });
+
+    // File input — 移动端放宽 accept，允许所有文件类型
+    el.fileInput.removeAttribute('accept');
+
     // Divider drag
     setupDividerDrag();
 
