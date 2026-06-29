@@ -803,20 +803,12 @@ function editCustomTemplate(idx) {
 
 // ===== 模板预览效果 =====
 function updateTemplatePreview() {
-    const previewEl = document.getElementById('template-preview-content');
-    if (!previewEl) return;
+    // Apply template styles to the MAIN preview panel
+    const previewEl = el.previewContent;
+    if (!previewEl || !previewEl.querySelector('h1')) return; // Only apply if preview has content
     
     const tpl = getEffectiveTemplate();
     const cfg = tpl.config || tpl;
-    
-    // Generate a sample preview based on template settings
-    const sampleText = `# 文档标题\n\n这是正文第一段，展示模板的实际效果。正文使用${cfg.bodyFont || '宋体'}字体，字号${cfg.bodySize || 12}pt。\n\n## 二级标题\n\n这是二级标题下的正文内容，行距为${cfg.lineHeight || 1.5}${cfg.lineRule === 'exact' ? '磅值' : '倍'}。\n\n- 列表项一\n- 列表项二\n- 列表项三`;
-    
-    try {
-        previewEl.innerHTML = marked.parse(sampleText);
-    } catch(e) {
-        previewEl.textContent = sampleText;
-    }
     
     // Apply template font styles to preview
     const headingFont = cfg.headingFont || 'SimSun';
