@@ -1,8 +1,9 @@
 // ===== AI转Word助手 — Markdown 解析核心 =====
 // docx 通过 UMD 全局引入，直接从 window.docx 获取
+const docx = window.docx;
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
     BorderStyle, WidthType, Table, TableRow, TableCell, TableLayoutType,
-    ImageRun, ExternalHyperlink, FootnoteReferenceRun } = window.docx;
+    ImageRun, ExternalHyperlink, FootnoteReferenceRun } = docx || {};
 
 /**
  * 解析 Markdown 文本为 docx 段落数组
