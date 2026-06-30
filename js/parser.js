@@ -176,28 +176,35 @@ function createHorizontalRule() {
  * @returns {Paragraph}
  */
 function createHeading(text, level, template) {
+    // 获取各级标题字号
     const sizes = {
-        1: (template.headingSize || 16) + 4,
-        2: (template.heading2Size || template.headingSize || 16) + 2,
-        3: template.headingSize || 16
+        1: template.headingSize || 22,
+        2: template.heading2Size || template.headingSize || 16,
+        3: template.heading3Size || template.heading2Size || template.headingSize || 16
     };
+    
+    // 获取各级标题字体（含降级）
     const fonts = {
         1: template.headingFont,
         2: template.heading2Font || template.headingFont,
-        3: template.headingFont
+        3: template.heading3Font || template.heading2Font || template.headingFont
     };
+
+    // 一级标题居中，二级三级左对齐（左空2字）
+    const alignment = level === 1 ? AlignmentType.CENTER : AlignmentType.LEFT;
 
     return new Paragraph({
         children: [new TextRun({
             text: text,
-            bold: true,
+            bold: false,
             font: fonts[level],
             size: sizes[level] * 2
         })],
         heading: level === 1 ? HeadingLevel.HEADING_1 : level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
-        alignment: level === 1 ? AlignmentType.CENTER : AlignmentType.LEFT,
+        alignment: alignment,
+        indent: level > 1 ? { firstLine: template.indentTwips || 320 } : undefined,
         spacing: {
-            before: level === 1 ? 400 : 300,
+            before: level === 1 ? 400 : 200,
             after: 200
         }
     });

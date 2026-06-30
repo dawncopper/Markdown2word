@@ -586,15 +586,25 @@ function showTemplateDetail(key) {
     const tpl = DEFAULT_TEMPLATES[key];
     if (!tpl) return;
 
+    const heading3Size = tpl.heading3Size || tpl.heading2Size || tpl.headingSize;
+    const heading3Font = tpl.heading3Font || tpl.heading2Font || tpl.headingFont;
+    
+    const marginTop = Math.round((tpl.margins?.top || 1440) / 56.7);
+    const marginBottom = Math.round((tpl.margins?.bottom || 1440) / 56.7);
+    const marginLeft = Math.round((tpl.margins?.left || 1440) / 56.7);
+    const marginRight = Math.round((tpl.margins?.right || 1440) / 56.7);
+
     const info = `
 📄 模板：${tpl.name}<br>
 ━━━━━━━━━━━━━━━<br>
-<b>一级标题：</b>${tpl.headingFont} · ${tpl.headingSize}pt<br>
-<b>二级标题：</b>${tpl.heading2Font} · ${tpl.heading2Size}pt<br>
+<b>主标题(h1)：</b>${tpl.headingFont} · ${tpl.headingSize}pt<br>
+<b>一级标题(h2)：</b>${tpl.heading2Font} · ${tpl.heading2Size}pt<br>
+<b>二级标题(h3)：</b>${heading3Font} · ${heading3Size}pt<br>
 <b>正文：</b>${tpl.bodyFont} · ${tpl.bodySize}pt<br>
 <b>行距：</b>${tpl.lineHeight}${tpl.lineRule === 'exact' ? ' (固定磅值)' : ' (倍数)'}<br>
 <b>对齐：</b>${tpl.alignment}<br>
-<b>首行缩进：</b>${tpl.firstLineIndent} 字符
+<b>首行缩进：</b>${tpl.firstLineIndent} 字符<br>
+<b>页边距：</b>上${marginTop} 下${marginBottom} 左${marginLeft} 右${marginRight} (mm)
     `;
 
     const modal = $('#template-modal');

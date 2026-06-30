@@ -40,19 +40,25 @@ const DEFAULT_TEMPLATES = {
     official: {
         name: '公文模板',
         icon: '📄',
-        desc: '党政机关公文格式 (GB/T 9704)',
-        headingFont: 'SimHei',
-        headingSize: 16,      // 三号
-        bodyFont: 'FangSong',
-        bodySize: 16,         // 三号
-        heading2Font: 'KaiTi',
-        heading2Size: 16,
-        lineHeight: 28,        // 28磅固定值
-        lineRule: 'exact',     // exact = 磅值, auto = 倍数
-        alignment: 'justified',
-        firstLineIndent: 2,    // 字符数
-        indentTwips: 320,      // 2字符 ≈ 320twips
-        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+        desc: '党政机关公文格式 (GB/T 9704-2012)',
+        headingFont: '方正小标宋_GBK',
+        headingSize: 22,           // 二号 (主标题)
+        headingFontFallback: 'SimHei',
+        bodyFont: '仿宋_GB2312',
+        bodyFontFallback: 'FangSong',
+        bodySize: 16,               // 三号
+        heading2Font: '黑体',
+        heading2FontFallback: 'SimHei',
+        heading2Size: 16,           // 三号 (一级标题)
+        heading3Font: '楷体_GB2312',
+        heading3FontFallback: 'KaiTi',
+        heading3Size: 16,           // 三号 (二级标题)
+        lineHeight: 28,             // 28磅固定值
+        lineRule: 'exact',          // exact = 磅值, auto = 倍数
+        alignment: 'justified',     // 两端对齐
+        firstLineIndent: 2,         // 首行缩进2字符
+        indentTwips: 320,           // 2字符 ≈ 320twips
+        margins: { top: 2098, right: 1474, bottom: 1984, left: 1587 }, // 上37mm 右26mm 下35mm 左28mm
         spacingBefore: 0,
         spacingAfter: 0
     },
