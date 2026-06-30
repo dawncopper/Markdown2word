@@ -1,9 +1,8 @@
 // ===== AI转Word助手 — Markdown 解析核心 =====
 // docx 通过 UMD 全局引入，直接从 window.docx 获取
-const docx = window.docx;
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
     BorderStyle, WidthType, Table, TableRow, TableCell, TableLayoutType,
-    ImageRun, ExternalHyperlink, FootnoteReferenceRun } = docx || {};
+    ImageRun, ExternalHyperlink, FootnoteReferenceRun } = window.docx;
 
 /**
  * 解析 Markdown 文本为 docx 段落数组
@@ -177,35 +176,28 @@ function createHorizontalRule() {
  * @returns {Paragraph}
  */
 function createHeading(text, level, template) {
-    // 获取各级标题字号
     const sizes = {
-        1: template.headingSize || 22,
-        2: template.heading2Size || template.headingSize || 16,
-        3: template.heading3Size || template.heading2Size || template.headingSize || 16
+        1: (template.headingSize || 16) + 4,
+        2: (template.heading2Size || template.headingSize || 16) + 2,
+        3: template.headingSize || 16
     };
-    
-    // 获取各级标题字体（含降级）
     const fonts = {
         1: template.headingFont,
         2: template.heading2Font || template.headingFont,
-        3: template.heading3Font || template.heading2Font || template.headingFont
+        3: template.headingFont
     };
-
-    // 一级标题居中，二级三级左对齐（左空2字）
-    const alignment = level === 1 ? AlignmentType.CENTER : AlignmentType.LEFT;
 
     return new Paragraph({
         children: [new TextRun({
             text: text,
-            bold: false,
+            bold: true,
             font: fonts[level],
             size: sizes[level] * 2
         })],
         heading: level === 1 ? HeadingLevel.HEADING_1 : level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
-        alignment: alignment,
-        indent: level > 1 ? { firstLine: template.indentTwips || 320 } : undefined,
+        alignment: level === 1 ? AlignmentType.CENTER : AlignmentType.LEFT,
         spacing: {
-            before: level === 1 ? 400 : 200,
+            before: level === 1 ? 400 : 300,
             after: 200
         }
     });
@@ -585,7 +577,9 @@ function parseTable(lines, startIndex, template) {
     const table = new Table({
         rows: tableCells,
         children: tableCells,
-        width: { size: 9000, type: WidthType.DXA }
+        width: { size: 9000, type: WidthType.DXA },
+        layout: TableLayoutType.FIXED,
+        tableVerticalAlign: 'top'
     });
 
     return { paragraphs: [table], nextIndex: i };
