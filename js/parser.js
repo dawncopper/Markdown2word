@@ -604,10 +604,9 @@ function parseTable(lines, startIndex, template) {
     });
 
     const table = new Table({
+        rows: tableCells,
         children: tableCells,
-        width: { size: 9000, type: WidthType.DXA },
-        layout: TableLayoutType.FIXED,
-        tableVerticalAlign: 'top'
+        width: { size: 9000, type: WidthType ? WidthType.DXA : 'dxa' }
     });
 
     return { paragraphs: [table], nextIndex: i };
