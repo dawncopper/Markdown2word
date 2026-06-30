@@ -64,6 +64,9 @@ async function exportToWord(text, mode) {
             return;
         }
 
+        if (!window.docx) {
+            throw new Error('docx库未加载，请检查网络连接或刷新页面');
+        }
         const { Document, Packer } = window.docx;
         const modeLabel = MODE_NAMES[mode] || mode;
         const tplName = template.name || '自定义';
@@ -131,6 +134,9 @@ async function batchExport(files, mode) {
 
     try {
         const template = getEffectiveTemplate();
+        if (!window.docx) {
+            throw new Error('docx库未加载，请检查网络连接或刷新页面');
+        }
         const { Document, Packer } = window.docx;
         const modeLabel = MODE_NAMES[mode] || mode;
         const tplName = template.name || '自定义';

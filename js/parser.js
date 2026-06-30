@@ -1,9 +1,13 @@
 // ===== AI转Word助手 — Markdown 解析核心 =====
-// docx 通过 UMD 全局引入，直接从 window.docx 获取
-const docx = window.docx;
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-    BorderStyle, WidthType, Table, TableRow, TableCell, TableLayoutType,
-    ImageRun, ExternalHyperlink, FootnoteReferenceRun } = docx || {};
+// docx 通过 UMD 全局引入，使用惰性获取避免加载时序问题
+
+function getDocx() {
+    const docx = window.docx;
+    if (!docx) {
+        throw new Error('docx库未加载，请检查网络连接或刷新页面');
+    }
+    return docx;
+}
 
 /**
  * 解析 Markdown 文本为 docx 段落数组
@@ -13,14 +17,14 @@ const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
  */
 function parseMarkdownToParagraphs(markdown, template) {
     const paragraphs = [];
-    const lines = markdown.split('\n');
+    const lines = (markdown || '').split('\n');
     let i = 0;
 
     while (i < lines.length) {
         const line = lines[i];
 
         // Empty line
-        if (line.trim() === '') {
+        if (!line || line.trim() === '') {
             i++;
             continue;
         }
@@ -35,7 +39,7 @@ function parseMarkdownToParagraphs(markdown, template) {
         // Tables
         if (line.startsWith('|')) {
             const tableResult = parseTable(lines, i, template);
-            if (tableResult.paragraphs.length > 0) {
+            if (tableResult.paragraphs && tableResult.paragraphs.length > 0) {
                 paragraphs.push(...tableResult.paragraphs);
             }
             i = tableResult.nextIndex;
@@ -66,7 +70,10 @@ function parseMarkdownToParagraphs(markdown, template) {
                 items.push(lines[i].replace(/^[-*+]\s/, ''));
                 i++;
             }
-            paragraphs.push(...createBullets(items, template));
+            const bulletParagraphs = createBullets(items, template);
+            if (bulletParagraphs && bulletParagraphs.length > 0) {
+                paragraphs.push(...bulletParagraphs);
+            }
             continue;
         }
 
@@ -77,7 +84,10 @@ function parseMarkdownToParagraphs(markdown, template) {
                 items.push(lines[i].replace(/^\d+\.\s/, ''));
                 i++;
             }
-            paragraphs.push(...createNumberedItems(items, template));
+            const numberedParagraphs = createNumberedItems(items, template);
+            if (numberedParagraphs && numberedParagraphs.length > 0) {
+                paragraphs.push(...numberedParagraphs);
+            }
             continue;
         }
 
@@ -113,7 +123,7 @@ function parseMarkdownToParagraphs(markdown, template) {
         }
 
         // Block math formula: $$...$$ or \[...\]
-        if (/^\$\$$/.test(line) || /^\[/.test(line)) {
+        if (/^\$\$$/.test(line) || /^\\\[/.test(line)) {
             const mathLines = [];
             const isDoubleDollar = line === '$$';
             const closingPattern = isDoubleDollar ? '$$' : '\\]';
@@ -161,6 +171,7 @@ function parseMarkdownToParagraphs(markdown, template) {
  * @returns {Paragraph}
  */
 function createHorizontalRule() {
+    const { Paragraph, BorderStyle } = getDocx();
     return new Paragraph({
         border: {
             bottom: { style: BorderStyle.SINGLE, size: 6, color: 'auto' }
@@ -177,26 +188,25 @@ function createHorizontalRule() {
  * @returns {Paragraph}
  */
 function createHeading(text, level, template) {
-    // 获取各级标题字号
+    const { Paragraph, TextRun, HeadingLevel, AlignmentType } = getDocx();
+    
     const sizes = {
         1: template.headingSize || 22,
         2: template.heading2Size || template.headingSize || 16,
         3: template.heading3Size || template.heading2Size || template.headingSize || 16
     };
     
-    // 获取各级标题字体（含降级）
     const fonts = {
         1: template.headingFont,
         2: template.heading2Font || template.headingFont,
         3: template.heading3Font || template.heading2Font || template.headingFont
     };
 
-    // 一级标题居中，二级三级左对齐（左空2字）
     const alignment = level === 1 ? AlignmentType.CENTER : AlignmentType.LEFT;
 
     return new Paragraph({
         children: [new TextRun({
-            text: text,
+            text: text || '',
             bold: false,
             font: fonts[level],
             size: sizes[level] * 2
@@ -218,6 +228,7 @@ function createHeading(text, level, template) {
  * @returns {Paragraph}
  */
 function createParagraph(text, template) {
+    const { Paragraph, AlignmentType } = getDocx();
     const runs = processInlineFormat(text, template);
 
     const spacingOpts = {};
@@ -246,18 +257,17 @@ function createParagraph(text, template) {
  * 处理行内格式（加粗、斜体、删除线、代码、图片、脚注、数学公式）
  * @param {string} text - 原始文本
  * @param {Object} template - 模板配置
- * @returns {(TextRun|Paragraph)[]}
+ * @returns {(TextRun|ExternalHyperlink)[]}
  */
 function processInlineFormat(text, template) {
+    const { TextRun, ExternalHyperlink } = getDocx();
     const runs = [];
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
 
-    // Handle bold, italic, strikethrough, code, image, footnote, inline math
-    // Math patterns: $...$, \(...\)，footnote: [^...]
-    const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|~~[^~]+~~|`[^`]+`|!\[([^\]]*)\]\(([^)]+)\)|\[\^[^\]]+\]|\$[^$]+\$|\\\([^)]+\\\))/g);
+    const parts = (text || '').split(/(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|~~[^~]+~~|`[^`]+`|!\[([^\]]*)\]\(([^)]+)\)|\[\^[^\]]+\]|\$[^$]+\$|\\\([^)]+\\\))/g);
 
-    parts.forEach(part => {
+    (parts || []).forEach(part => {
         if (!part) return;
 
         // Footnote reference: [^1]
@@ -290,9 +300,7 @@ function processInlineFormat(text, template) {
         const imageMatch = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
         if (imageMatch) {
             const [, alt, url] = imageMatch;
-            // For images, we add alt text as a hyperlink
-            if (url.startsWith('data:')) {
-                // Base64 image - try to embed
+            if (url && url.startsWith('data:')) {
                 runs.push(new TextRun({
                     text: `[图片: ${alt || 'embedded image'}]`,
                     font: bodyFont,
@@ -301,7 +309,6 @@ function processInlineFormat(text, template) {
                     italics: true
                 }));
             } else {
-                // External URL - show as link text
                 runs.push(new ExternalHyperlink({
                     children: [new TextRun({
                         text: `[图片: ${alt || '点击查看'}]`,
@@ -310,7 +317,7 @@ function processInlineFormat(text, template) {
                         color: '3b82f6',
                         underline: { type: 'single' }
                     })],
-                    link: url
+                    link: url || '#'
                 }));
             }
             return;
@@ -325,19 +332,19 @@ function processInlineFormat(text, template) {
             }));
         } else if (/^\*.*\*$/.test(part) || /^_.*_$/.test(part)) {
             runs.push(new TextRun({
-                text: part.replace(/^\*|\*|^_|_$/g, ''),
+                text: part.replace(/^\*|\*$|^_|_$/g, ''),
                 italic: true,
                 font: bodyFont,
                 size: bodySize * 2
             }));
-        } else if (/^~~.*~~/.test(part)) {
+        } else if (/^~~.*~~$/.test(part)) {
             runs.push(new TextRun({
                 text: part.replace(/^~~|~~$/g, ''),
                 strike: true,
                 font: bodyFont,
                 size: bodySize * 2
             }));
-        } else if (/^`.*`/.test(part)) {
+        } else if (/^`.*`$/.test(part)) {
             runs.push(new TextRun({
                 text: part.replace(/^`|`$/g, ''),
                 font: 'Consolas',
@@ -353,7 +360,7 @@ function processInlineFormat(text, template) {
         }
     });
 
-    return runs.length > 0 ? runs : [new TextRun({ text, font: bodyFont, size: bodySize * 2 })];
+    return runs.length > 0 ? runs : [new TextRun({ text: text || '', font: bodyFont, size: bodySize * 2 })];
 }
 
 /**
@@ -363,12 +370,15 @@ function processInlineFormat(text, template) {
  * @returns {Paragraph[]}
  */
 function createBullets(items, template) {
+    const { Paragraph, TextRun } = getDocx();
+    if (!Array.isArray(items) || items.length === 0) return [];
+    
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     
     return items.map(item => new Paragraph({
         children: [new TextRun({
-            text: item,
+            text: item || '',
             font: bodyFont,
             size: bodySize * 2
         })],
@@ -384,12 +394,15 @@ function createBullets(items, template) {
  * @returns {Paragraph[]}
  */
 function createNumberedItems(items, template) {
+    const { Paragraph, TextRun } = getDocx();
+    if (!Array.isArray(items) || items.length === 0) return [];
+    
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     
     return items.map((item, idx) => new Paragraph({
         children: [new TextRun({
-            text: item,
+            text: item || '',
             font: bodyFont,
             size: bodySize * 2
         })],
@@ -405,9 +418,10 @@ function createNumberedItems(items, template) {
  * @returns {Paragraph}
  */
 function createCodeBlock(code, template) {
+    const { Paragraph, TextRun, BorderStyle } = getDocx();
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
-    const lines = code.split('\n');
+    const lines = (code || '').split('\n');
     
     return new Paragraph({
         children: lines.map((line, idx) =>
@@ -436,12 +450,13 @@ function createCodeBlock(code, template) {
  * @returns {Paragraph}
  */
 function createQuote(text, template) {
+    const { Paragraph, TextRun } = getDocx();
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     
     return new Paragraph({
         children: [new TextRun({
-            text: '「' + text + '」',
+            text: '「' + (text || '') + '」',
             italic: true,
             font: bodyFont,
             size: bodySize * 2,
@@ -459,7 +474,8 @@ function createQuote(text, template) {
  * @returns {Paragraph}
  */
 function createImageParagraph(line, template) {
-    const match = line.match(/^!\[([^\]]*)\]\(([^)]+)\)(?:\s*"([^"]*)")?$/);
+    const { Paragraph, TextRun, ExternalHyperlink, AlignmentType } = getDocx();
+    const match = (line || '').match(/^!\[([^\]]*)\]\(([^)]+)\)(?:\s*"([^"]*)")?$/);
     if (!match) {
         return new Paragraph({ children: [] });
     }
@@ -468,7 +484,6 @@ function createImageParagraph(line, template) {
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     
-    // Display image as a centered paragraph with link
     return new Paragraph({
         children: [
             new ExternalHyperlink({
@@ -481,7 +496,7 @@ function createImageParagraph(line, template) {
                         underline: { type: 'single' }
                     })
                 ],
-                link: url
+                link: url || '#'
             })
         ],
         alignment: AlignmentType.CENTER,
@@ -496,11 +511,11 @@ function createImageParagraph(line, template) {
  * @returns {Paragraph}
  */
 function createMathBlock(formula, template) {
+    const { Paragraph, TextRun, AlignmentType, BorderStyle } = getDocx();
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     
-    // Clean up formula - remove $ delimiters
-    const cleanFormula = formula.replace(/^\$|\$$/g, '').trim();
+    const cleanFormula = (formula || '').replace(/^\$|\$$/g, '').trim();
     
     return new Paragraph({
         children: [
@@ -527,15 +542,21 @@ function createMathBlock(formula, template) {
  * @param {string[]} lines - 所有行
  * @param {number} startIndex - 表格起始索引
  * @param {Object} template - 模板配置
- * @returns {{paragraphs: (Table|PParagraph)[], nextIndex: number}}
+ * @returns {{paragraphs: Table[], nextIndex: number}}
  */
 function parseTable(lines, startIndex, template) {
+    const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType, TableLayoutType } = getDocx();
+    
+    if (!Array.isArray(lines)) {
+        return { paragraphs: [], nextIndex: startIndex };
+    }
+    
     const tableRows = [];
     let i = startIndex;
 
-    while (i < lines.length && lines[i].startsWith('|')) {
+    while (i < lines.length && lines[i] && lines[i].startsWith('|')) {
         const cells = lines[i].split('|').filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
-        tableRows.push(cells.map(c => c.trim()));
+        tableRows.push((cells || []).map(c => (c || '').trim()));
         i++;
     }
 
@@ -548,11 +569,12 @@ function parseTable(lines, startIndex, template) {
     const headingSize = template.headingSize || 16;
     const bodySize = template.bodySize || 12;
 
-    const nc = Math.max(...tableRows.map(r => r.length));
+    const nc = Math.max(...tableRows.map(r => (r || []).length));
     const cw = Math.floor(9000 / nc);
 
     const tableCells = tableRows.map((row, rowIdx) => {
-        const cells = row.map(cellText => {
+        const safeRow = row || [];
+        const cells = safeRow.map(cellText => {
             const runs = [new TextRun({
                 text: cellText || '',
                 font: rowIdx === 0 ? headingFont : bodyFont,
@@ -571,7 +593,6 @@ function parseTable(lines, startIndex, template) {
             });
         });
 
-        // Pad missing cells
         while (cells.length < nc) {
             cells.push(new TableCell({
                 children: [new Paragraph({ children: [new TextRun({ text: '', font: bodyFont, size: bodySize * 2 })] })],
@@ -599,8 +620,10 @@ function parseTable(lines, startIndex, template) {
  * @returns {Paragraph[]} 目录段落数组
  */
 function generateTableOfContents(markdown, template) {
+    const { Paragraph, TextRun, AlignmentType } = getDocx();
+    
     const headings = [];
-    const lines = markdown.split('\n');
+    const lines = (markdown || '').split('\n');
 
     for (const line of lines) {
         const h1Match = line.match(/^# (.+)$/);
@@ -624,7 +647,6 @@ function generateTableOfContents(markdown, template) {
     const bodySize = template.bodySize || 12;
     const paragraphs = [];
 
-    // Title
     paragraphs.push(new Paragraph({
         children: [new TextRun({
             text: '目  录',
@@ -636,23 +658,23 @@ function generateTableOfContents(markdown, template) {
         spacing: { before: 200, after: 400 }
     }));
 
-    // TOC entries
     for (const heading of headings) {
         const indentTwips = heading.indent * 240;
         const fontSize = heading.level === 1 ? (template.headingSize || 16) * 2 :
                         heading.level === 2 ? (template.heading2Size || 14) * 2 :
                         bodySize * 2;
 
+        const dotCount = Math.max(1, 30 - (heading.text || '').length - heading.indent * 2);
         paragraphs.push(new Paragraph({
             children: [
                 new TextRun({
-                    text: heading.text,
+                    text: heading.text || '',
                     font: bodyFont,
                     size: fontSize,
                     bold: heading.level === 1
                 }),
                 new TextRun({
-                    text: '  ' + '．'.repeat(Math.max(1, 30 - heading.text.length - heading.indent * 2)),
+                    text: '  ' + '．'.repeat(dotCount),
                     font: bodyFont,
                     size: fontSize,
                     color: '888888'
@@ -664,7 +686,6 @@ function generateTableOfContents(markdown, template) {
         }));
     }
 
-    // Page break after TOC
     paragraphs.push(new Paragraph({
         children: [new TextRun({ text: '' })],
         pageBreakBefore: true
@@ -684,7 +705,7 @@ function parseFootnoteDefinitions(markdown) {
     const regex = /^\[\^([^\]]+)\]:\s*(.+)$/gm;
     let match;
     
-    while ((match = regex.exec(markdown)) !== null) {
+    while ((match = regex.exec(markdown || '')) !== null) {
         footnotes.set(match[1], match[2]);
     }
     
@@ -698,25 +719,24 @@ function parseFootnoteDefinitions(markdown) {
  * @param {Map<string, string>} footnotes - 脚注定义
  * @param {number} currentIndex - 当前脚注序号
  * @param {Object} template - 模板配置
- * @returns {{runs: Array, footnotes: Map}}
+ * @returns {{runs: Array, footnotes: Map, nextIndex: number}}
  */
 function processInlineFootnotes(text, footnotes, currentIndex, template) {
+    const { TextRun } = getDocx();
     const runs = [];
-    const newFootnotes = new Map(footnotes);
+    const newFootnotes = new Map(footnotes || []);
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     
-    // Split by footnote reference pattern
-    const parts = text.split(/(\[\^[^\]]+\])/g);
+    const parts = (text || '').split(/(\[\^[^\]]+\])/g);
     
-    parts.forEach(part => {
+    (parts || []).forEach(part => {
         if (!part) return;
         
         const footnoteMatch = part.match(/^\[\^([^\]]+)\]$/);
         if (footnoteMatch) {
             const key = footnoteMatch[1];
             if (newFootnotes.has(key)) {
-                // Add footnote reference
                 runs.push(new TextRun({
                     text: `[${currentIndex}]`,
                     font: bodyFont,
@@ -746,13 +766,14 @@ function processInlineFootnotes(text, footnotes, currentIndex, template) {
  * @returns {Paragraph[]}
  */
 function generateFootnotes(footnotes, template) {
-    if (footnotes.size === 0) return [];
+    const { Paragraph, TextRun, BorderStyle } = getDocx();
+    
+    if (!footnotes || footnotes.size === 0) return [];
     
     const bodyFont = template.bodyFont || 'SimSun';
     const bodySize = template.bodySize || 12;
     const paragraphs = [];
     
-    // Separator line
     paragraphs.push(new Paragraph({
         border: {
             top: { style: BorderStyle.SINGLE, size: 6, color: 'cccccc' }
@@ -760,7 +781,6 @@ function generateFootnotes(footnotes, template) {
         spacing: { before: 400, after: 200 }
     }));
     
-    // Footnote heading
     paragraphs.push(new Paragraph({
         children: [new TextRun({
             text: '脚注',
@@ -771,7 +791,6 @@ function generateFootnotes(footnotes, template) {
         spacing: { before: 200, after: 200 }
     }));
     
-    // Footnote entries
     let index = 1;
     for (const [key, content] of footnotes) {
         if (key.startsWith('ref_')) {
@@ -785,7 +804,7 @@ function generateFootnotes(footnotes, template) {
                         color: '3b82f6'
                     }),
                     new TextRun({
-                        text: content,
+                        text: content || '',
                         font: bodyFont,
                         size: bodySize * 2
                     })
