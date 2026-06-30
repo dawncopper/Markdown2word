@@ -40,7 +40,9 @@
                         <button class="btn btn-secondary" id="clear-btn">🗑️ 清除</button>
                         <button class="btn btn-secondary" id="paste-btn">📋 粘贴</button>
                         <button class="btn btn-secondary" id="upload-btn">📁 上传</button>
+                        <button class="btn btn-secondary" id="batch-upload-btn" title="批量上传多个文件">📦 批量</button>
                         <input type="file" id="file-input" accept=".txt,.md,.html" hidden>
+                        <input type="file" id="batch-file-input" accept=".txt,.md,.html" multiple hidden>
                     </div>
                 </div>
                 <div class="panel-body">
@@ -80,6 +82,15 @@
                                 <div class="mode-label">通用模式</div>
                                 <div class="mode-desc">直接转换<br>保留原格式</div>
                             </label>
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="mode-section">
+                        <h3>📋 导出选项</h3>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="include-toc">
+                            <label for="include-toc">生成目录 (TOC)</label>
                         </div>
                     </div>
                 </div>
@@ -261,8 +272,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://unpkg.com/docx@8.2.3/build/index.umd.js"></script>
-    <script src="app.js"></script>
+    <!-- marked.js 固定版本 v12.0.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <!-- docx.js 固定版本 v8.5.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+    <script src="app.js" type="module"></script>
 </body>
 </html>

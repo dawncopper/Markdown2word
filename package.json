@@ -1,0 +1,15 @@
+{
+  "name": "markdown2word",
+  "version": "3.1.0",
+  "description": "AI转Word助手 - Markdown to Word converter",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^1.4.0",
+    "@vitest/coverage-v8": "^1.4.0"
+  }
+}

@@ -642,6 +642,52 @@ body {
     opacity: 0.5;
 }
 
+/* ---- Dark Mode Preview Enhancement ---- */
+[data-theme="dark"] .preview-container {
+    background-color: var(--preview-bg, #1a1d27);
+}
+
+[data-theme="dark"] .preview-content {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .preview-content h1,
+[data-theme="dark"] .preview-content h2,
+[data-theme="dark"] .preview-content h3 {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .preview-content table {
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .preview-content th,
+[data-theme="dark"] .preview-content td {
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .preview-content th {
+    background-color: var(--bg-elevated);
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .preview-content code {
+    background-color: var(--bg-elevated);
+    color: #f87171;
+}
+
+[data-theme="dark"] .preview-content pre {
+    background-color: var(--bg-elevated);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .preview-content blockquote {
+    border-left-color: var(--accent);
+    color: var(--text-secondary);
+    background-color: var(--bg-elevated);
+}
+
 /* ---- Stats Bar ---- */
 .stats-bar {
     display: flex;
