@@ -93,10 +93,45 @@ function setCurrentTemplateAndSave(template) {
     saveState();
 }
 
+// ===== 状态对象（包含getter/setter） =====
+const state = {};
+
+Object.defineProperties(state, {
+    currentTemplate: {
+        get() { return currentTemplate; },
+        set(v) { currentTemplate = v; },
+        enumerable: true
+    },
+    currentMode: {
+        get() { return currentMode; },
+        set(v) { currentMode = v; },
+        enumerable: true
+    },
+    currentTheme: {
+        get() { return currentTheme; },
+        set(v) { currentTheme = v; },
+        enumerable: true
+    },
+    customSettings: {
+        get() { return customSettings; },
+        set(v) { customSettings = v; },
+        enumerable: true
+    },
+    customTemplates: {
+        get() { return customTemplates; },
+        set(v) { customTemplates = v; },
+        enumerable: true
+    },
+    splitRatio: {
+        get() { return splitRatio; },
+        set(v) { splitRatio = v; },
+        enumerable: true
+    }
+});
+
 export {
-    // 状态变量
+    state,
     getState,
-    // 设置器
     setTemplate,
     setMode,
     setTheme,
@@ -104,20 +139,6 @@ export {
     setCustomTemplates,
     setSplitRatio,
     setCurrentTemplateAndSave,
-    // 初始化
     loadState,
-    saveState,
-    // 直接访问（用于兼容）
-    get currentTemplate() { return currentTemplate; },
-    set currentTemplate(v) { currentTemplate = v; },
-    get currentMode() { return currentMode; },
-    set currentMode(v) { currentMode = v; },
-    get currentTheme() { return currentTheme; },
-    set currentTheme(v) { currentTheme = v; },
-    get customSettings() { return customSettings; },
-    set customSettings(v) { customSettings = v; },
-    get customTemplates() { return customTemplates; },
-    set customTemplates(v) { customTemplates = v; },
-    get splitRatio() { return splitRatio; },
-    set splitRatio(v) { splitRatio = v; }
+    saveState
 };

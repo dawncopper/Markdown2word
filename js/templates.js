@@ -1,7 +1,7 @@
 // ===== AI转Word助手 — 模板管理 =====
 
 import { DEFAULT_TEMPLATES } from './constants.js';
-import { getState, setCurrentTemplateAndSave, saveState, get } from './state.js';
+import { state, getState, setCurrentTemplateAndSave, saveState } from './state.js';
 import { showToast } from './ui.js';
 
 /**
